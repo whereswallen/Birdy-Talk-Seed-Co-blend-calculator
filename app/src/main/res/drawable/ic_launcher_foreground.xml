@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Foreground art sits within the inner 72x72 safe zone (margin ~18). -->
+    <group android:scaleX="0.62" android:scaleY="0.62" android:pivotX="54" android:pivotY="54">
+        <!-- Stylized sunflower-seed drop -->
+        <path
+            android:fillColor="#C9A34E"
+            android:pathData="M54,18 C70,34 74,54 54,90 C34,54 38,34 54,18 Z" />
+        <path
+            android:fillColor="#F4ECD8"
+            android:pathData="M54,34 C62,44 63,56 54,76 C45,56 46,44 54,34 Z" />
+    </group>
+</vector>

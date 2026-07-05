@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Base platform theme used only for the window background and status/nav bars before
+      Compose renders. The real app styling lives in ui/theme/Theme.kt (SeedCoTheme).
+    -->
+    <style name="Theme.SeedCo" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@color/forest_green_deep</item>
+        <item name="android:navigationBarColor">@color/forest_green_deep</item>
+        <item name="android:windowBackground">@color/forest_green</item>
+    </style>
+</resources>

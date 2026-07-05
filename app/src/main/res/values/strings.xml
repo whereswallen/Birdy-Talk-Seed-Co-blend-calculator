@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Seed Co. Calculator</string>
+    <string name="app_full_name">Seed Co. Production Calculator</string>
+    <string name="brand_name">Birdy Talk Seed Co.</string>
+
+    <string name="tab_batch">Batch Scaling</string>
+    <string name="tab_anchor">Anchor Dump</string>
+
+    <string name="unit_lb">lb</string>
+    <string name="unit_lb_oz">lb + oz</string>
+    <string name="unit_kg">kg</string>
+</resources>
