@@ -1,7 +1,7 @@
 package com.birdytalk.seedco.domain
 
 import com.birdytalk.seedco.domain.calc.BlendCalculator
-import com.birdytalk.seedco.domain.data.RecipeRepository
+import com.birdytalk.seedco.domain.data.DefaultBlends
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -10,7 +10,7 @@ import java.math.BigDecimal
 
 class BlendCalculatorTest {
 
-    private fun blend(id: String) = RecipeRepository.blendById(id)!!
+    private fun blend(id: String) = DefaultBlends.blends.first { it.id == id }
 
     private fun weightOf(lines: List<com.birdytalk.seedco.domain.calc.IngredientWeight>, name: String) =
         lines.first { it.ingredient.name == name }.weightPounds

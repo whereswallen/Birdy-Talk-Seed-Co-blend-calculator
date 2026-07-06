@@ -5,14 +5,14 @@ import com.birdytalk.seedco.domain.model.Ingredient
 import java.math.BigDecimal
 
 /**
- * Source of truth for the six immutable, pre-loaded Birdy Talk Seed Co. blends.
+ * The six factory-default Birdy Talk blends used to seed the editable [Blend] store on first run
+ * and when the user chooses "reset recipes to defaults".
  *
- * Percentages are declared as exact [BigDecimal] string literals so no precision is lost
- * between the recipe card and the production floor.
+ * Percentages are declared as exact [BigDecimal] string literals so no precision is lost between
+ * the recipe card and the production floor. Costs start unset (`ZERO`) for the owner to fill in.
  */
-object RecipeRepository {
+object DefaultBlends {
 
-    /** Convenience for readable recipe declarations. */
     private fun ingredient(name: String, percent: String) = Ingredient(name, BigDecimal(percent))
 
     val blends: List<Blend> = listOf(
@@ -78,7 +78,4 @@ object RecipeRepository {
             ),
         ),
     )
-
-    /** Returns the blend with the given [id], or `null` when unknown. */
-    fun blendById(id: String): Blend? = blends.firstOrNull { it.id == id }
 }
