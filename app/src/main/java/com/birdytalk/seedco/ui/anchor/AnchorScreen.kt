@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -27,11 +28,14 @@ import com.birdytalk.seedco.domain.units.UnitConverter
 import com.birdytalk.seedco.domain.units.UnitSystem
 import com.birdytalk.seedco.ui.AnchorTabState
 import com.birdytalk.seedco.ui.components.CapacityWarningBanner
+import com.birdytalk.seedco.ui.components.CostSummaryCard
 import com.birdytalk.seedco.ui.components.HeadlineTotalCard
 import com.birdytalk.seedco.ui.components.IngredientResultCard
 import com.birdytalk.seedco.ui.components.LabeledDropdown
 import com.birdytalk.seedco.ui.components.NumericField
+import com.birdytalk.seedco.ui.components.ResultActionsRow
 import com.birdytalk.seedco.ui.components.ingredientColor
+import com.birdytalk.seedco.ui.format.Money
 import com.birdytalk.seedco.ui.toBlendOptions
 import com.birdytalk.seedco.ui.toIngredientOptions
 
@@ -45,16 +49,30 @@ fun AnchorScreen(
     onAnchorSelected: (String) -> Unit,
     onWeightChanged: (String) -> Unit,
     onCapacityChanged: (String) -> Unit,
+    onLogBatch: () -> Unit,
+    onShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val blend = blends.first { it.id == state.blendId }
-    val haptics = LocalHapticFeedback.current
+    val blend = blends.firstOrNull { it.id == state.blendId } ?: blends.firstOrNull()
+    if (blend == null) {
+        Column(
+            modifier = modifier.fillMaxWidth().padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                "No blends yet. Add one from Settings → Blends.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
+        return
+    }
 
-    // Tactile feedback when the anchor ingredient changes...
+    val haptics = LocalHapticFeedback.current
     LaunchedEffect(state.anchorName) {
         haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
-    // ...and when the batch first crosses the bin-capacity threshold.
     LaunchedEffect(state.overCapacity) {
         if (state.overCapacity) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
     }
@@ -72,12 +90,12 @@ fun AnchorScreen(
                     InputSection(blend, blends, state, unit, onBlendSelected, onAnchorSelected, onWeightChanged, onCapacityChanged)
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ResultsSection(blend, state, unit)
+                    ResultsSection(blend, state, unit, onLogBatch, onShare)
                 }
             }
         } else {
             InputSection(blend, blends, state, unit, onBlendSelected, onAnchorSelected, onWeightChanged, onCapacityChanged)
-            ResultsSection(blend, state, unit)
+            ResultsSection(blend, state, unit, onLogBatch, onShare)
         }
     }
 }
@@ -97,7 +115,7 @@ private fun InputSection(
         LabeledDropdown(
             label = "Blend",
             options = blends.toBlendOptions(),
-            selectedId = state.blendId,
+            selectedId = blend.id,
             onSelect = onBlendSelected,
         )
         Column {
@@ -136,6 +154,8 @@ private fun ResultsSection(
     blend: Blend,
     state: AnchorTabState,
     unit: UnitSystem,
+    onLogBatch: () -> Unit,
+    onShare: () -> Unit,
 ) {
     val result = state.result
 
@@ -166,24 +186,29 @@ private fun ResultsSection(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (result != null) {
-                    HeadlineTotalCard(
-                        label = blend.name,
-                        totalPounds = result.totalPounds,
-                        unit = unit,
-                    )
+                    val costByName = state.cost?.lines?.associateBy { it.ingredient.name }.orEmpty()
+                    val shortByName = state.shortfalls.associateBy { it.ingredientName }
+                    val showCosts = state.cost?.hasCosts == true
+
+                    HeadlineTotalCard(label = blend.name, totalPounds = result.totalPounds, unit = unit)
+
                     result.lines.forEachIndexed { index, line ->
                         val isAnchor = line.ingredient.name == state.anchorName
-                        Row {
-                            IngredientResultCard(
-                                name = if (isAnchor) "${line.ingredient.name}  ⚓" else line.ingredient.name,
-                                percent = line.ingredient.percent,
-                                weightPounds = line.weightPounds,
-                                accentColor = ingredientColor(index),
-                                unit = unit,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
+                        IngredientResultCard(
+                            name = if (isAnchor) "${line.ingredient.name}  ⚓" else line.ingredient.name,
+                            percent = line.ingredient.percent,
+                            weightPounds = line.weightPounds,
+                            accentColor = ingredientColor(index),
+                            unit = unit,
+                            costText = if (showCosts) costByName[line.ingredient.name]?.let { Money.format(it.cost) } else null,
+                            shortMessage = shortByName[line.ingredient.name]?.let {
+                                "Short ${UnitConverter.format(it.shortPounds, unit).full}"
+                            },
+                        )
                     }
+
+                    state.cost?.let { CostSummaryCard(cost = it) }
+                    ResultActionsRow(onLogBatch = onLogBatch, onShare = onShare)
                 }
             }
         }

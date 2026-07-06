@@ -2,9 +2,9 @@ package com.birdytalk.seedco.ui.batch
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,16 +26,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.birdytalk.seedco.domain.model.Blend
+import com.birdytalk.seedco.domain.units.UnitConverter
 import com.birdytalk.seedco.domain.units.UnitSystem
 import com.birdytalk.seedco.ui.BatchTabState
 import com.birdytalk.seedco.ui.components.CompositionDonut
 import com.birdytalk.seedco.ui.components.CompositionLegend
+import com.birdytalk.seedco.ui.components.CostSummaryCard
 import com.birdytalk.seedco.ui.components.HeadlineTotalCard
 import com.birdytalk.seedco.ui.components.IngredientResultCard
 import com.birdytalk.seedco.ui.components.LabeledDropdown
 import com.birdytalk.seedco.ui.components.NumericField
 import com.birdytalk.seedco.ui.components.RatioBar
+import com.birdytalk.seedco.ui.components.ResultActionsRow
 import com.birdytalk.seedco.ui.components.ingredientColor
+import com.birdytalk.seedco.ui.format.Money
 import com.birdytalk.seedco.ui.toBlendOptions
 import com.birdytalk.seedco.ui.toSlices
 import kotlin.math.roundToInt
@@ -50,9 +54,15 @@ fun BatchScreen(
     twoPane: Boolean,
     onBlendSelected: (String) -> Unit,
     onTargetChanged: (String) -> Unit,
+    onLogBatch: () -> Unit,
+    onShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val blend = blends.first { it.id == state.blendId }
+    val blend = blends.firstOrNull { it.id == state.blendId } ?: blends.firstOrNull()
+    if (blend == null) {
+        EmptyBlends(modifier)
+        return
+    }
 
     Column(
         modifier = modifier
@@ -68,14 +78,29 @@ fun BatchScreen(
                     CompositionSection(blend)
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ResultsSection(blend, state, unit)
+                    ResultsSection(blend, state, unit, onLogBatch, onShare)
                 }
             }
         } else {
             InputSection(blend, blends, state, unit, onBlendSelected, onTargetChanged)
             CompositionSection(blend)
-            ResultsSection(blend, state, unit)
+            ResultsSection(blend, state, unit, onLogBatch, onShare)
         }
+    }
+}
+
+@Composable
+private fun EmptyBlends(modifier: Modifier) {
+    Column(
+        modifier = modifier.fillMaxWidth().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "No blends yet. Add one from Settings → Blends.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -92,7 +117,7 @@ private fun InputSection(
         LabeledDropdown(
             label = "Blend",
             options = blends.toBlendOptions(),
-            selectedId = state.blendId,
+            selectedId = blend.id,
             onSelect = onBlendSelected,
         )
 
@@ -143,6 +168,8 @@ private fun ResultsSection(
     blend: Blend,
     state: BatchTabState,
     unit: UnitSystem,
+    onLogBatch: () -> Unit,
+    onShare: () -> Unit,
 ) {
     val result = state.result
     AnimatedVisibility(
@@ -155,11 +182,12 @@ private fun ResultsSection(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (result != null) {
-                HeadlineTotalCard(
-                    label = blend.name,
-                    totalPounds = result.targetTotalPounds,
-                    unit = unit,
-                )
+                val costByName = state.cost?.lines?.associateBy { it.ingredient.name }.orEmpty()
+                val shortByName = state.shortfalls.associateBy { it.ingredientName }
+                val showCosts = state.cost?.hasCosts == true
+
+                HeadlineTotalCard(label = blend.name, totalPounds = result.targetTotalPounds, unit = unit)
+
                 result.lines.forEachIndexed { index, line ->
                     IngredientResultCard(
                         name = line.ingredient.name,
@@ -167,8 +195,15 @@ private fun ResultsSection(
                         weightPounds = line.weightPounds,
                         accentColor = ingredientColor(index),
                         unit = unit,
+                        costText = if (showCosts) costByName[line.ingredient.name]?.let { Money.format(it.cost) } else null,
+                        shortMessage = shortByName[line.ingredient.name]?.let {
+                            "Short ${UnitConverter.format(it.shortPounds, unit).full}"
+                        },
                     )
                 }
+
+                state.cost?.let { CostSummaryCard(cost = it) }
+                ResultActionsRow(onLogBatch = onLogBatch, onShare = onShare)
             }
         }
     }

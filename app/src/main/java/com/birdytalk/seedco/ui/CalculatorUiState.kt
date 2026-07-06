@@ -2,12 +2,16 @@ package com.birdytalk.seedco.ui
 
 import com.birdytalk.seedco.domain.calc.AnchorResult
 import com.birdytalk.seedco.domain.calc.BatchResult
+import com.birdytalk.seedco.domain.calc.CostSummary
+import com.birdytalk.seedco.domain.inventory.Shortfall
+import com.birdytalk.seedco.domain.model.Blend
 import com.birdytalk.seedco.domain.units.UnitSystem
 import java.math.BigDecimal
 
-/** Top-level UI state. The selected [unitSystem] is global across both tabs. */
+/** Top-level, fully-derived calculator state. The [unitSystem] and [blends] are shared globally. */
 data class CalculatorUiState(
     val unitSystem: UnitSystem = UnitSystem.DECIMAL_POUNDS,
+    val blends: List<Blend> = emptyList(),
     val batch: BatchTabState = BatchTabState(),
     val anchor: AnchorTabState = AnchorTabState(),
 )
@@ -17,6 +21,8 @@ data class BatchTabState(
     val blendId: String = "",
     val targetInput: String = "",
     val result: BatchResult? = null,
+    val cost: CostSummary? = null,
+    val shortfalls: List<Shortfall> = emptyList(),
     val error: String? = null,
 )
 
@@ -27,8 +33,10 @@ data class AnchorTabState(
     val weightInput: String = "",
     val binCapacityInput: String = "",
     val result: AnchorResult? = null,
-    val error: String? = null,
+    val cost: CostSummary? = null,
+    val shortfalls: List<Shortfall> = emptyList(),
     val binCapacityPounds: BigDecimal? = null,
+    val error: String? = null,
 ) {
     /** How much the computed batch exceeds the configured bin capacity, or `null` if within limits. */
     val overagePounds: BigDecimal?

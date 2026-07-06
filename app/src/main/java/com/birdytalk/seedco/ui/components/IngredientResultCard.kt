@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.birdytalk.seedco.domain.units.UnitSystem
 import com.birdytalk.seedco.ui.theme.JetBrainsMono
+import com.birdytalk.seedco.ui.theme.LocalSeedCoAccents
 import java.math.BigDecimal
 
 /**
@@ -39,6 +40,8 @@ fun IngredientResultCard(
     accentColor: Color,
     unit: UnitSystem,
     modifier: Modifier = Modifier,
+    costText: String? = null,
+    shortMessage: String? = null,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -69,6 +72,20 @@ fun IngredientResultCard(
                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = JetBrainsMono),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (costText != null) {
+                    Text(
+                        text = costText,
+                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = JetBrainsMono),
+                        color = LocalSeedCoAccents.current.gold,
+                    )
+                }
+                if (shortMessage != null) {
+                    Text(
+                        text = shortMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
             Spacer(Modifier.width(12.dp))
             AnimatedWeightText(

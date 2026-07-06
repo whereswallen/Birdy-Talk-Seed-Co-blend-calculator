@@ -1,8 +1,8 @@
-# Seed Co. Production Calculator
+# Birdy Talk Blend Manager
 
 A premium, production-ready Android app for **Birdy Talk Seed Co.** that scales bird-seed blend
 recipes on the production floor using exact `BigDecimal` math — no floating-point drift on real
-weights.
+weights — and lets you manage your own recipes, costs, inventory, and history.
 
 Built with **100% Kotlin**, **Jetpack Compose + Material 3**, and a **Clean Architecture / MVVM**
 structure with state produced through Kotlin `StateFlow`s.
@@ -10,6 +10,21 @@ structure with state produced through Kotlin `StateFlow`s.
 ---
 
 ## Features
+
+### Editable recipes, costs & margins
+- **Full recipe management** in Settings → Blends: edit percentages, ingredient names, and
+  per-lb costs; add/remove ingredients; create, duplicate, and delete blends; reset to defaults.
+- **Hard 100% rule**: a blend can only be saved when its percentages total exactly 100% —
+  enforced by the editor's Save gate and again by the domain model, so nothing invalid persists.
+- **Costing**: per-ingredient and total batch cost, blended cost-per-pound, and — with a retail
+  price — revenue, profit, and margin %.
+
+### Production tools
+- **Inventory / stock check**: track on-hand pounds per ingredient; batches that need more than
+  you have flag a shortfall.
+- **Batch history**: log any calculation and revisit or re-run it later.
+- **Share**: export a plain-text batch sheet (weights + costs) via the Android share sheet.
+- **Backup & restore**: export/import all recipes, costs, inventory, and history as one JSON file.
 
 ### Two calculation modes
 
@@ -59,27 +74,29 @@ the new unit when you switch so the physical weight stays constant.
 A Gradle multi-module build keeps the production-critical math independent of Android:
 
 ```
-:core-domain   Pure Kotlin/JVM — models, RecipeRepository, BlendCalculator (BigDecimal),
-               UnitConverter. Fully unit-tested, no Android dependency.
-:app           Android application — Compose UI, Material 3 theme, CalculatorViewModel,
-               DataStore unit persistence.
+:core-domain   Pure Kotlin/JVM — models, DefaultBlends, BlendCalculator, CostCalculator,
+               StockCheck, UnitConverter, serialization. Fully unit-tested, no Android dependency.
+:app           Android application — Compose UI, Material 3 theme, AppViewModel, navigation,
+               DataStore/JSON persistence (blends, inventory, history, unit preference).
 ```
 
 ```
 core-domain/
-  model/       Ingredient, Blend (validates percentages total 100)
-  data/        RecipeRepository (the six immutable blends)
-  calc/        BlendCalculator, IngredientWeight, BatchResult, AnchorResult
+  model/       Ingredient (cost), Blend (retail price; validates 100%), EditableBlend (draft)
+  data/        DefaultBlends (the six seed recipes)
+  calc/        BlendCalculator, CostCalculator, IngredientWeight, BatchResult, AnchorResult
+  inventory/   StockCheck (shortfalls)
   units/       UnitSystem, UnitConverter, FormattedWeight
-app/ .../ui/
-  theme/       Color, Type (bundled variable fonts), Theme (SeedCoTheme)
-  components/  UnitToggleHeader, LabeledDropdown, NumericField, IngredientResultCard,
-               HeadlineTotalCard, CompositionChart (donut/ratio bar/legend), WarningBanner,
-               AnimatedWeightText
-  batch/       BatchScreen (Tab 1)
-  anchor/      AnchorScreen (Tab 2)
-  CalculatorViewModel — single source of truth (StateFlow<CalculatorUiState>)
-  AppRoot — persistent header, unit toggle, tab navigation, adaptive layout
+  persistence/ BatchHistoryEntry, InventoryItem, AppBackup; serialization/ BigDecimalSerializer
+app/ .../
+  data/        BlendRepository, InventoryRepository, HistoryRepository, BackupRepository (DataStore)
+  ui/theme/    Color, Type (bundled variable fonts), Theme (SeedCoTheme)
+  ui/components/ UnitToggleHeader, LabeledDropdown, NumericField, IngredientResultCard,
+                 CostSummaryCard, HeadlineTotalCard, CompositionChart, WarningBanner, …
+  ui/calculator/ CalculatorScreen (header + tabs); ui/batch, ui/anchor (the two modes)
+  ui/settings/ SettingsScreen, BlendListScreen, BlendEditorScreen, BackupScreen
+  ui/inventory/ InventoryScreen;  ui/history/ HistoryScreen
+  ui/AppViewModel — single source of truth (StateFlow); ui/AppRoot — NavHost
 ```
 
 The canonical internal unit everywhere is **pounds** (`BigDecimal`); conversion to the selected
@@ -102,11 +119,12 @@ and AndroidX artifacts are resolved from Google's Maven repository, so an intern
 needed on first build.
 
 ### Verified in this environment
-The `:core-domain` math (`BlendCalculator`, `UnitConverter`, `RecipeRepository`) is covered by a
-JUnit suite that runs on the plain JVM — 17 tests, all green — validating the anchor/batch
-scaling examples, the three unit conversions (including the ounce carry-over), and that every
-recipe totals exactly 100%. The Compose `:app` module compiles against the standard AndroidX
-toolchain in Android Studio / CI.
+The `:core-domain` layer (`BlendCalculator`, `CostCalculator`, `StockCheck`, `UnitConverter`,
+serialization, and `EditableBlend` validation) is covered by a JUnit suite that runs on the plain
+JVM — 33 tests, all green — validating the anchor/batch scaling examples, the three unit
+conversions (including the ounce carry-over), the cost/margin math, JSON round-trips, stock
+shortfalls, and the exact-100% rule. The Compose `:app` module builds via GitHub Actions
+(`.github/workflows/android.yml`), which uploads the debug APK as an artifact.
 
 ---
 
